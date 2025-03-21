@@ -3,16 +3,20 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-xml_file = r"E:\下载\thewindows12.WordPress.2025-03-20 (1).xml"
-doc = minidom.parse(xml_file)
-
 def convert_image_link(link):
     # 从链接中提取路径
     # 示例路径 https://www.thewindows12.com/wp-content/uploads/2024/05/image-6.png
     # 提取后路径 images/post/2024/05/image-6.png
-    if link.startswith("https://www.thewindows12.com/wp-content/uploads/"):
-        relative_path = link.replace("https://www.thewindows12.com/wp-content/uploads/", "")
+
+    # Test
+    # link = "https://www.thewindows12.com/wp-content/uploads/2024/05/image-6.png"
+
+    if "/wp-content/uploads/" in link:
+        relative_path = link.split('/wp-content/uploads/')[-1]
         return f'images/post/{relative_path}'
+    # if link.startswith("https://www.thewindows12.com/wp-content/uploads/"):
+    #     relative_path = link.replace("https://www.thewindows12.com/wp-content/uploads/", "")
+    #     return f'images/post/{relative_path}'
     else:
         return "Invalid link format."
 
@@ -40,7 +44,7 @@ def get_post_metadata(item):
     post_link = item.getElementsByTagName('link')[0].firstChild.data
     file_name = post_link.split('/')[-2] + '.md'
     description = item.getElementsByTagName('excerpt:encoded')[0].firstChild.data
-    image_link = get_featured_image_link(post_link)
+    # image_link = get_featured_image_link(post_link)
     publish_date = time_convert(item.getElementsByTagName('pubDate')[0].firstChild.data)
     
     # 获取分类和标签
@@ -57,10 +61,11 @@ def get_post_metadata(item):
             post_tag = category.firstChild.data
             post_tags.append(post_tag)
     
+    # image: "{image_link}"
+
     post_metadata = f"""---
 title: "{title}"
 description: "{description}"
-image: "{image_link}"
 date: "{publish_date}"
 categories: ["{post_categories}"]
 tags: [{', '.join(f'"{tag}"' for tag in post_tags)}]
@@ -81,15 +86,23 @@ sitemapExclude: false
     return post_metadata, file_name
 
 def get_content(item):
-    pass
+    content_encoded = item.getElementsByTagName('content:encoded')
+
+    for content in content_encoded:
+        print(content.firstChild.data)
+
 
 def main():
+    xml_file = input("Please input XML file:")
+    doc = minidom.parse(xml_file)
+
     items = doc.getElementsByTagName('item')
 
     for item in items:
         item_type = item.getElementsByTagName('wp:post_type')[0].firstChild.data
         if item_type == 'post':
             post_metadata, file_name = get_post_metadata(item)
+            print(post_metadata, file_name)
             content = get_content(item)
 
 
